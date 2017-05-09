@@ -2,7 +2,8 @@
 
 import math
 import random
-
+import matplotlib
+matplotlib.use('TkAgg')
 import ps2_visualize
 import pylab
 
@@ -272,28 +273,33 @@ def runSimulation(num_robots, speed, width, height, min_coverage, num_trials,
     robot_type: class of robot to be instantiated (e.g. StandardRobot or
                 RandomWalkRobot)
     """
-    room = RectangularRoom(width, height)
-    robot = robot_type(room, speed)
     
-    list_of_runs = []
-    while len(list_of_runs) < num_trials:
-        runs = 0
-        while robot.room.getNumCleanedTiles()/robot.room.getNumTiles() < min_coverage:
-            robot.updatePositionAndClean()
-            runs += 1
-        list_of_runs.append(runs)
+    all_trials = []
+    
+    def trial():
+        # anim = ps2_visualize.RobotVisualization(num_robots, width, height)
+        room = RectangularRoom(width, height)
+        robots = []
+        for robot in range(num_robots):
+            robots.append(robot_type(room, speed))
+        steps = 0
+        while room.getNumCleanedTiles()/room.getNumTiles() < min_coverage:
+            for robot in robots:
+                # anim.update(room, robots)
+                robot.updatePositionAndClean()
+            steps += 1
+        # anim.done()
+        return steps
 
-    total = 0
-    for trial in list_of_runs:
-        total += trial
+    for t in range(num_trials):
+        all_trials.append(trial())
 
-    return total/len(list_of_runs)
+    return sum(all_trials)/len(all_trials)
 
-        
 
 
 # Uncomment this line to see how much your simulation takes on average
-##print(runSimulation(1, 1.0, 10, 10, 0.75, 30, StandardRobot))
+# print(runSimulation(3, 1.0, 10, 10, 0.75, 1, RandomWalkRobot))
 
 
 # === Problem 5
@@ -309,7 +315,16 @@ class RandomWalkRobot(Robot):
         Move the robot to a new position and mark the tile it is on as having
         been cleaned.
         """
-        raise NotImplementedError
+        self.room.cleanTileAtPosition(self.getRobotPosition())
+        if self.room.isPositionInRoom(self.getRobotPosition().getNewPosition(self.getRobotDirection(), self.speed)):
+            self.setRobotPosition(self.getRobotPosition().getNewPosition(self.getRobotDirection(), self.speed))
+            self.setRobotDirection(int(random.uniform(0,360)))
+        else:
+            self.setRobotDirection(int(random.uniform(0,360)))
+    
+
+      
+
 
 
 def showPlot1(title, x_label, y_label):
@@ -327,8 +342,8 @@ def showPlot1(title, x_label, y_label):
     pylab.plot(num_robot_range, times2)
     pylab.title(title)
     pylab.legend(('StandardRobot', 'RandomWalkRobot'))
-    pylab.xlabel(x_label)
-    pylab.ylabel(y_label)
+    pylab.xlabel('Number of Robots')
+    pylab.ylabel('Time Steps')
     pylab.show()
 
     
@@ -339,7 +354,7 @@ def showPlot2(title, x_label, y_label):
     aspect_ratios = []
     times1 = []
     times2 = []
-    for width in [10, 20, 25, 50]:
+    for width in [5,10, 20, 25, 50]:
         height = 300//width
         print("Plotting cleaning time for a room of width:", width, "by height:", height)
         aspect_ratios.append(float(width) / height)
@@ -349,8 +364,8 @@ def showPlot2(title, x_label, y_label):
     pylab.plot(aspect_ratios, times2)
     pylab.title(title)
     pylab.legend(('StandardRobot', 'RandomWalkRobot'))
-    pylab.xlabel(x_label)
-    pylab.ylabel(y_label)
+    pylab.xlabel('Aspect Ratio - Width/Height')
+    pylab.ylabel('Average timesteps')
     pylab.show()
     
 
@@ -358,6 +373,8 @@ def showPlot2(title, x_label, y_label):
 # NOTE: If you are running the simulation, you will have to close it 
 # before the plot will show up.
 
+# showPlot1('Title', 'x label', 'y label')
+showPlot2('Title', 'x label', 'y label')
 #
 # 1) Write a function call to showPlot1 that generates an appropriately-labeled
 #     plot.
